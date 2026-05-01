@@ -1,0 +1,71 @@
+{
+    "name" : "UB22",
+    "index" : 899,
+    "paper" : "#002b36",
+    "text" : "#839496",
+    "caret" : {
+        "width" : 2,
+        "foreground" : "#fff070",
+        "line-background" : "#073642"
+    },
+    "colors" : {
+        "keyword1" : "#268ad1",
+        "keyword2" : "#2aa198",
+        "keyword3" : "#859900",
+        "keyword-custom1" : "Chartreuse",
+        "keyword-custom2" : "Orange",
+        "keyword-custom3" : "Aquamarine",
+        "keyword-custom4" : "Skyblue",
+        "keyword-custom5" : "MediumOrchid",
+        "keyword-custom6" : "SeaGreen",
+        "keyword-custom7" : "HotPink",
+        "keyword-custom8" : "DarkTurquoise",
+        "keyword-custom9" : "DarkKhaki",
+        "keyword-custom10" : "Gold",
+        "keyword-custom11" : "Magenta",
+	
+        "commentline" : "#657b83",
+        "commentdoc" : "#657b83",
+        "commentdockeyword" : "#6c71c4",
+
+        "comment" : "#657b83",
+        "number" : "CadetBlue",
+        "string" : "#b58900",
+        "operator" : "#cb4b16",
+        "variables" : "LightGray",
+
+        "keywords" : "#268ad1",
+        "transformations" : "#859900",
+        "booleans" : "#859900",
+        "functions" : "#2aa198",
+        "models" : "#859900",
+        "special-variables" : "#268ad1",
+
+        "whitespace-foreground" : "#839496",
+        "selection-foreground" : "#fdf6e3",
+        "selection-background" : "#657b83",
+        "margin-background" : "#002b36",
+        "margin-foreground" : "#839496",
+        "matched-brace-background" : "#0c4e22",
+        "matched-brace-foreground" : "#fff070",
+        "unmatched-brace-background" : "#92211f",
+        "unmatched-brace-foreground" : "#fff070",
+        "error-marker" : "#ff0000",
+        "error-indicator" : "#90ff8080",
+        "error-indicator-outline" : "#ff000000",
+        "edge" : "#d33682"
+    },
+    "keywords" : {
+        "keyword-custom1" : "Konstanten index a b c angle v r r1 r2 d d1 d2 dicke center size height twist slices path points faces convexity PI PHI inch gradC gw t tw twF fs2fn h dia dn ir or id od opt grad deg rot x y z e es s f fa fn fn2 fs spiel help wand rand rad bed info layer n nozzle name pPos printPos useVersion loop lap start end i j p0 p1 p2 p3 delta part",
+        "keyword-custom2" : "Spezial true false undef bool Hexstring parentList gcode is_parent stringChunk string2num scene t3",
+        "keyword-custom3" : "NummerFunktionen line l inkreis umkreis hypotenuse kathete sehne gradB gradS runden radiusS radiusSH distS kreisbogen scaleGrad teiler wall vMult vSum vMin vMax vAdd pathLength map transition",
+        "keyword-custom4" : "Punktefunktionen RotLang bezier kreis nut FiveGgon zigZag tangentenP vollwelle vektorWinkel v3 m mPoints pathPoints tetra octa quad stern wStern superellipse star naca involute riemen kreisSek sq bend polyRund revP arc parabel sternDeg triInkreis triUmkreis",
+        "keyword-custom5" : "Modifier T Tz R M Linear Polar Grid HexGrid Klon MKlon Halb Drehpunkt Rund Rand Scale Select CHull",
+        "keyword-custom6" : "Generator Rundrum LinEx LinEx2 RotEx Ellipse Ttorus Bevel Row Roof Schlaufe Bogen SBogen RStern Torus",
+        "keyword-custom7" : "Helper Col Color Cut Schnitt Anordnen SCT Caliper Points Echo InfoTxt HelpTxt ThreeProjection Pivot Line PrevPos PolyDeg Rod",
+        "keyword-custom8" : "Objekte Ring Kextrude Gewinde GewindeV3 Kontaktwinkel Bezier Laser3D Kugelmantel Kegel MK Kegelmantel Torus2 Coil WaveEx Pille Strebe WStrebe Twins Kehle REcke HypKehle HypKehleD Text W5 Rohr Dreieck Freiwinkel Sinuskoerper Kassette Surface Box Spirale Prisma Ccube Disphenoid Zylinder Anschluss RingSeg Buchtung SpiralCut Isosphere OctaH PolyH Knurl KnurlTri Loch QuadAnschluss FlatMesh FlatKnurl",
+        "keyword-custom9" : "Polygone Kreis Trapez Tri Tri90 Quad Linse Bogendreieck Stern ZigZag Superellipse Flower Seg7 WStern WKreis RSternFill Cycloid SQ Vollwelle CycloidZahn Nut DBogen Pfeil DPfeil Rosette GT Egg VarioFill Welle Area Sichel Tdrop Star NACA Involute Riemen PolyRund Arc SWelle VorterantQ Reuleaux Tesselation Connector SternDeg Penrose RectTiling CZahn Voronoi",
+        "keyword-custom10" : "Produkte Gardena Servotraeger Knochen Glied DGlied SGlied DGlied0 DGlied1 Luer Bitaufnahme Imprint Achshalter Achsenklammer Vorterantrotor Tugel ReuleauxIntersect Glied3 Gelenk Balg Tring Servokopf Halbrund Riemenscheibe Cring PCBcase Klammer Pin CyclGetriebe CyclGear CGear SRing DRing BB Abzweig GT2Pulley KBS Filter Bayonet",
+        "keyword-custom11" : "Keyword11 doesnt work"
+    }
+}
