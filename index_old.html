@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OpenSCAD Editor — Single File</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { height: 100%; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#0b0e14; }
+    .CodeMirror { height:100% !important; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:14px; line-height:1.6; }
+    .cm-s-material-darker.CodeMirror { background:#0f131b !important; }
+    ::-webkit-scrollbar { width:8px; height:8px; }
+    ::-webkit-scrollbar-thumb { background:#2a3344; border-radius:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    .btn { @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 transition; }
+    .btn-primary { @apply bg-emerald-600 hover:bg-emerald-500 border-emerald-500/30 text-white; }
+    .chip { @apply text-[11px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700; }
+  </style>
+</head>
+<body class="text-slate-200 overflow-hidden">
+<div class="h-screen flex flex-col">
+  <!-- Top Toolbar -->
+  <header class="h-14 flex items-center gap-2 px-3 bg-[#11151c]/90 backdrop-blur border-b border-slate-800 shrink-0 z-40">
+    <button id="menuBtn" class="lg:hidden btn !p-1.5" title="Toggle sidebar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="flex items-center gap-2 mr-1">
+      <div class="w-7 h-7 rounded-md bg-gradient-to-br from-violet-500 to-cyan-400 grid place-items-center shadow-lg shadow-violet-900/20">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z"/></svg>
+      </div>
+      <span class="font-semibold tracking-tight hidden sm:block">OpenSCAD</span>
+      <span class="chip hidden sm:inline">single-file</span>
+    </div>
+
+    <div class="flex items-center gap-1.5 flex-1 min-w-0">
+      <input id="filename" class="w-full max-w-[220px] bg-[#0b0e14] border border-slate-700 rounded-md px-2.5 py-1.5 text-sm outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20" value="example.scad"/>
+      <button id="saveBtn" class="btn" title="Save (Ctrl+S)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span class="hidden sm:inline">Save</span>
+      </button>
+      <button id="renderBtn" class="btn-primary btn" title="Render (F5)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span class="hidden sm:inline">Render</span>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-1.5">
+      <select id="libSelect" class="bg-[#0b0e14] border border-slate-700 rounded-md px-2 py-1.5 text-sm outline-none hover:border-slate-600">
+        <option value="">Insert Library…</option>
+        <option value="bosl2">BOSL2</option>
+        <option value="mcad">MCAD</option>
+        <option value="round">Round-Anything</option>
+        <option value="nop">NopSCADlib</option>
+      </select>
+      <a href="https://openscad.org/cheatsheet/" target="_blank" class="btn hidden md:inline-flex" title="Cheatsheet">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 9h6v6"/><path d="M9 15l6-6"/></svg>
+        Docs
+      </a>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden relative">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="absolute lg:relative z-30 inset-y-0 left-0 w-[280px] bg-[#11151c] border-r border-slate-800 flex flex-col transition-transform duration-200 -translate-x-full lg:translate-x-0">
+      <div class="p-3 border-b border-slate-800/80">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Files</h2>
+          <div class="flex gap-1">
+            <button id="newBtn" class="btn !px-2 !py-1 text-xs" title="New file">New</button>
+            <button id="importBtn" class="btn !px-2 !py-1 text-xs" title="Import .scad">Import</button>
+          </div>
+        <ul id="fileList" class="space-y-0.5 max-h-[28vh] overflow-auto pr-1"></ul>
+        <input type="file" id="fileInput" accept=".scad,.txt" class="hidden"/>
+      </div>
+
+      <div class="p-3 flex-1 overflow-auto">
+        <h2 class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">Libraries</h2>
+        <div class="space-y-2">
+          <div class="p-2.5 rounded-lg bg-[#0c1017] border border-slate-800 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-sm">BOSL2</div>
+                <div class="text-[11px] text-slate-400">The Belfry OpenScad Library v2</div>
+              </div>
+              <a class="chip hover:bg-slate-700" href="https://github.com/revarbat/BOSL2" target="_blank">GitHub</a>
+            </div>
+            <button data-lib="bosl2" class="mt-2 w-full text-left text-xs px-2 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800">insert include</button>
+          </div>
+          <div class="p-2.5 rounded-lg bg-[#0c1017] border border-slate-800 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-sm">MCAD</div>
+                <div class="text-[11px] text-slate-400">Mechanical CAD library</div>
+              </div>
+              <a class="chip hover:bg-slate-700" href="https://github.com/openscad/MCAD" target="_blank">GitHub</a>
+            </div>
+            <button data-lib="mcad" class="mt-2 w-full text-left text-xs px-2 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800">insert use</button>
+          </div>
+          <div class="p-2.5 rounded-lg bg-[#0c1017] border border-slate-800 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-sm">Round-Anything</div>
+                <div class="text-[11px] text-slate-400">Polygons & polyround</div>
+              </div>
+              <a class="chip hover:bg-slate-700" href="https://github.com/Irev-Dev/Round-Anything" target="_blank">GitHub</a>
+            </div>
+            <button data-lib="round" class="mt-2 w-full text-left text-xs px-2 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800">insert include</button>
+          </div>
+          <div class="p-2.5 rounded-lg bg-[#0c1017] border border-slate-800 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-sm">NopSCADlib</div>
+                <div class="text-[11px] text-slate-400">Parts & vitamins</div>
+              </div>
+              <a class="chip hover:bg-slate-700" href="https://github.com/nophead/NopSCADlib" target="_blank">GitHub</a>
+            </div>
+            <button data-lib="nop" class="mt-2 w-full text-left text-xs px-2 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800">insert include</button>
+          </div>
+        </div>
+
+        <div class="mt-4 p-2.5 rounded-lg bg-amber-950/30 border border-amber-900/50">
+          <div class="text-xs font-medium text-amber-200 mb-1">WASM Note</div>
+          <p class="text-[11px] leading-snug text-amber-100/80">Full CSG render needs openscad-wasm (~15 MB). This demo parses <code>cube()</code>, <code>cylinder()</code>, <code>sphere()</code> for instant preview. Replace <code>renderScene()</code> with WASM call later.</p>
+        </div>
+      </div>
+
+      <div class="p-2.5 border-t border-slate-800 flex items-center justify-between">
+        <button id="exportBtn" class="btn w-full justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export .scad
+        </button>
+      </div>
+    </aside>
+
+    <!-- Editor + Preview -->
+    <main class="flex-1 flex flex-col lg:flex-row min-w-0">
+      <!-- Editor -->
+      <section class="flex-1 flex flex-col min-w-0 relative">
+        <div class="h-8 flex items-center gap-2 px-3 text-[11px] border-b border-slate-800 bg-[#0f131b] shrink-0">
+          <span class="text-slate-400">OpenSCAD</span>
+          <span class="w-px h-4 bg-slate-700"></span>
+          <span id="cursorPos" class="text-slate-500">Ln 1, Col 1</span>
+          <span class="ml-auto flex items-center gap-1.5">
+            <span class="chip">simulated preview</span>
+            <span class="chip">auto-render</span>
+          </span>
+        </div>
+        <div id="editor" class="flex-1"></div>
+      </section>
+
+      <!-- Preview -->
+      <section class="w-full h-[42vh] lg:h-auto lg:w-[440px] xl:w-[520px] border-t lg:border-t-0 lg:border-l border-slate-800 relative bg-[#080b11] shrink-0">
+        <div class="absolute top-0 inset-x-0 h-8 flex items-center justify-between px-3 bg-[#0f131b] border-b border-slate-800 z-10">
+          <div class="flex items-center gap-2 text-[11px]">
+            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="uppercase tracking-wider text-slate-400 font-medium">3D Preview</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button id="resetView" class="chip hover:bg-slate-700">Reset</button>
+            <button id="wireToggle" class="chip hover:bg-slate-700">Wire</button>
+          </div>
+        </div>
+        <canvas id="canvas" class="absolute inset-0 w-full h-full top-8" style="height: calc(100% - 2rem)"></canvas>
+        
+        <!-- Camera Gizmo -->
+        <div class="absolute bottom-3 left-3">
+          <canvas id="gizmo" width="96" height="96" class="w-[96px] h-[96px] rounded-xl bg-[#0c1017]/80 backdrop-blur border border-slate-700 shadow-xl cursor-pointer"></canvas>
+          <div class="absolute -top-1 -right-1 text-[9px] px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Z-up</div>
+        </div>
+
+        <!-- Info -->
+        <div class="absolute bottom-3 right-3 max-w-[220px] p-2.5 rounded-lg bg-[#0c1017]/85 backdrop-blur border border-slate-800 text-[11px] leading-snug">
+          <div class="font-medium text-slate-200 mb-0.5">Simulated Renderer</div>
+          <div class="text-slate-400">Parses <code class="text-violet-300">cube()</code>, <code class="text-violet-300">cylinder()</code>, <code class="text-violet-300">sphere()</code>. Try editing sizes.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-sm shadow-2xl opacity-0 pointer-events-none transition"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---------- Editor ----------
+CodeMirror.defineMIME("text/x-openscad", {
+  name: "clike",
+  keywords: {
+    "module": true, "function": true, "include": true, "use": true,
+    "for": true, "if": true, "else": true, "let": true, "each": true,
+    "true": true, "false": true, "undef": true
+  },
+  builtin: {
+    "cube": true, "sphere": true, "cylinder": true, "polyhedron": true,
+    "square": true, "circle": true, "polygon": true,
+    "translate": true, "rotate": true, "scale": true, "mirror": true,
+    "union": true, "difference": true, "intersection": true, "hull": true, "minkowski": true
+  }
+});
+
+const defaultCode = `// OpenSCAD Playground — single-file editor
+include <BOSL2/std.scad>
+
+$fn = 64;
+
+// edit values and press Render (F5)
+cube([20, 30, 10], center=true);
+
+translate([0, 0, 10])
+  cylinder(h=15, r=8);
+
+translate([25, 0, 0])
+  sphere(r=10);
+
+// try: cube(12); cylinder(h=20, d=12); sphere(d=16);
+`;
+
+const editor = CodeMirror(document.getElementById('editor'), {
+  value: defaultCode,
+  mode: 'text/x-openscad',
+  theme: 'material-darker',
+  lineNumbers: true,
+  styleActiveLine: true,
+  matchBrackets: true,
+  autoCloseBrackets: true,
+  indentUnit: 2,
+  tabSize: 2,
+});
+
+const cursorPos = document.getElementById('cursorPos');
+editor.on('cursorActivity', () => {
+  const c = editor.getCursor();
+  cursorPos.textContent = `Ln ${c.line+1}, Col ${c.ch+1}`;
+});
+
+// ---------- Files (localStorage) ----------
+const STORAGE_KEY = 'oscad-files-v1';
+const LAST_KEY = 'oscad-last-v1';
+const fileList = document.getElementById('fileList');
+const filenameInput = document.getElementById('filename');
+
+function loadFiles() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveFiles(obj) { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
+
+function refreshFileList() {
+  const files = loadFiles();
+  fileList.innerHTML = '';
+  const current = filenameInput.value;
+  Object.keys(files).sort().forEach(name => {
+    const li = document.createElement('li');
+    li.className = 'group flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-slate-800 cursor-pointer border border-transparent hover:border-slate-700';
+    li.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="text-sm truncate flex-1">${name}</span>
+      <button class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400" title="Delete">×</button>
+    `;
+    if (name === current) li.classList.add('bg-slate-800/70','border-slate-700');
+    li.querySelector('span').onclick = () => openFile(name);
+    li.querySelector('button').onclick = (e) => { e.stopPropagation(); deleteFile(name); };
+    fileList.appendChild(li);
+  });
+}
+
+function openFile(name) {
+  const files = loadFiles();
+  if (files[name] != null) {
+    editor.setValue(files[name]);
+    filenameInput.value = name;
+    localStorage.setItem(LAST_KEY, name);
+    refreshFileList();
+    renderScene();
+    toast(`Opened ${name}`);
+  }
+}
+function saveCurrent() {
+  const name = filenameInput.value.trim() || 'untitled.scad';
+  const files = loadFiles();
+  files[name] = editor.getValue();
+  saveFiles(files);
+  localStorage.setItem(LAST_KEY, name);
+  refreshFileList();
+  toast('Saved');
+}
+function deleteFile(name) {
+  if (!confirm(`Delete ${name}?`)) return;
+  const files = loadFiles(); delete files[name]; saveFiles(files); refreshFileList();
+}
+function newFile() {
+  const name = prompt('New file name', 'new.scad'); if (!name) return;
+  filenameInput.value = name; editor.setValue('// new file\n'); saveCurrent(); renderScene();
+}
+
+// init files
+(() => {
+  const files = loadFiles();
+  if (!Object.keys(files).length) {
+    files['example.scad'] = defaultCode;
+    files['demo-bosl2.scad'] = `include <BOSL2/std.scad>\n\ncuboid([30,20,10], rounding=3, edges="Z");\n`;
+    saveFiles(files);
+  }
+  const last = localStorage.getItem(LAST_KEY) || 'example.scad';
+  filenameInput.value = last;
+  editor.setValue(files[last] || defaultCode);
+  refreshFileList();
+})();
+
+// ---------- Three.js ----------
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080b11);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+camera.position.set(45, 35, 40);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.target.set(0,0,0);
+
+const grid = new THREE.GridHelper(200, 40, 0x2b3344, 0x1a202e);
+grid.position.y = 0;
+scene.add(grid);
+
+const hemi = new THREE.HemisphereLight(0xb1c5ff, 0x080b11, 0.6);
+scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+dir.position.set(30, 50, 20);
+scene.add(dir);
+
+const modelGroup = new THREE.Group();
+modelGroup.rotation.x = -Math.PI/2; // OpenSCAD Z-up → Three Y-up
+scene.add(modelGroup);
+
+const mat = new THREE.MeshStandardMaterial({ color: 0x7aa2f7, roughness: 0.35, metalness: 0.05, envMapIntensity: 0.5 });
+const wireMat = new THREE.MeshBasicMaterial({ color: 0x7aa2f7, wireframe: true });
+
+let wireframe = false;
+document.getElementById('wireToggle').onclick = () => {
+  wireframe = !wireframe;
+  modelGroup.traverse(o => { if (o.isMesh) o.material = wireframe ? wireMat : mat; });
+};
+
+function clearModel() {
+  while (modelGroup.children.length) {
+    const c = modelGroup.children.pop();
+    c.geometry?.dispose();
+  }
+}
+
+function parseParams(str) {
+  const out = {};
+  str.split(',').forEach(p => {
+    const [k,v] = p.split('=').map(s=>s?.trim());
+    if (!v) { // positional
+      out._pos = out._pos || []; out._pos.push(k);
+    } else {
+      out[k] = v;
+    }
+  });
+  return out;
+}
+function toNum(v, d=0){ const n = parseFloat(v); return isFinite(n)?n:d; }
+
+// rudimentary transform stack for translate()
+function extractTranslates(code) {
+  // very naive: find translate([...]) preceding a primitive on same line or next
+  // For demo we just ignore nesting and place at origin.
+  return null;
+}
+
+function renderScene() {
+  clearModel();
+  const code = editor.getValue();
+
+  // cubes
+  const cubeRe = /cube\s*\(\s*(?:\[\s*([\d\.+-]+)\s*,\s*([\d\.+-]+)\s*,\s*([\d\.+-]+)\s*\]|([\d\.+-]+))\s*(?:,\s*center\s*=\s*(true|false))?[^\)]*\)/gi;
+  let m;
+  while ((m = cubeRe.exec(code))) {
+    let x, y, z, center=false;
+    if (m[1]) { x=+m[1]; y=+m[2]; z=+m[3]; } else { x=y=z=+m[4]; }
+    if (m[5]) center = m[5]==='true';
+    const g = new THREE.BoxGeometry(Math.max(x,0.01), Math.max(y,0.01), Math.max(z,0.01));
+    const me = new THREE.Mesh(g, wireframe?wireMat:mat);
+    if (!center) me.position.set(x/2, y/2, z/2);
+    modelGroup.add(me);
+  }
+
+  // cylinders
+  const cylRe = /cylinder\s*\(\s*([^)]*)\)/gi;
+  while ((m = cylRe.exec(code))) {
+    const p = parseParams(m[1]);
+    const h = toNum(p.h ?? p._pos?.[0], 10);
+    const r1 = toNum(p.r1 ?? p.r ?? p.d1/2 ?? p.d/2 ?? (p._pos?.[1]), 5);
+    const r2 = toNum(p.r2 ?? p.r ?? p.d2/2 ?? p.d/2 ?? r1, r1);
+    const g = new THREE.CylinderGeometry(Math.max(r2,0.01), Math.max(r1,0.01), Math.max(h,0.01), 48);
+    const me = new THREE.Mesh(g, wireframe?wireMat:mat);
+    me.position.y = h/2; // cylinder sits on Z=0 in OpenSCAD → after group rot, y is up
+    modelGroup.add(me);
+  }
+
+  // spheres
+  const sphRe = /sphere\s*\(\s*([^)]*)\)/gi;
+  while ((m = sphRe.exec(code))) {
+    const p = parseParams(m[1]);
+    const r = toNum(p.r ?? p.d/2 ?? (p._pos?.[0]), 5);
+    const g = new THREE.SphereGeometry(Math.max(r,0.01), 32, 24);
+    const me = new THREE.Mesh(g, wireframe?wireMat:mat);
+    modelGroup.add(me);
+  }
+
+  if (!modelGroup.children.length) {
+    const g = new THREE.BoxGeometry(10,10,10);
+    modelGroup.add(new THREE.Mesh(g, wireframe?wireMat:mat));
+  }
+
+  // frame camera
+  const box = new THREE.Box3().setFromObject(modelGroup);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3()).length();
+  controls.target.copy(center);
+  const dist = Math.max(size*1.6, 25);
+  const dirVec = new THREE.Vector3(0.7, 0.55, 0.8).normalize();
+  camera.position.copy(center).add(dirVec.multiplyScalar(dist));
+  camera.near = Math.max(dist/100, 0.1);
+  camera.far = dist*10;
+  camera.updateProjectionMatrix();
+  controls.update();
+}
+
+// ---------- Gizmo ----------
+const gizmoCanvas = document.getElementById('gizmo');
+const gizmoRenderer = new THREE.WebGLRenderer({ canvas: gizmoCanvas, alpha: true, antialias: true });
+gizmoRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const gizmoScene = new THREE.Scene();
+const gizmoCam = new THREE.OrthographicCamera(-1.3,1.3,-1.3,0.1,4);
+gizmoCam.position.set(0,0,2.5);
+
+const gizmoGroup = new THREE.Group();
+gizmoScene.add(gizmoGroup);
+
+function makeAxis(dir, color, label) {
+  const arrow = new THREE.ArrowHelper(dir.clone().normalize(), new THREE.Vector3(0,0,0), 0.9, color, 0.22, 0.12);
+  arrow.userData.axis = label;
+  // label sprite
+  const cv = document.createElement('canvas'); cv.width=128; cv.height=128;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,128,128);
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 84px Inter, sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label,64,72);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent:true }));
+  spr.position.copy(dir).multiplyScalar(1.18);
+  spr.scale.set(0.36,0.36,1);
+  arrow.add(spr);
+  return arrow;
+}
+// OpenSCAD axes in Three world (after modelGroup rotation): X→X, Z→Y (up), Y→-Z
+const axX = makeAxis(new THREE.Vector3(1,0,0), 0xff5f5f, 'X');
+const axZ = makeAxis(new THREE.Vector3(0,1,0), 0x5fa8ff, 'Z');
+const axY = makeAxis(new THREE.Vector3(0,0,-1), 0x34d399, 'Y');
+gizmoGroup.add(axX, axY, axZ);
+const gizmoSphere = new THREE.Mesh(new THREE.SphereGeometry(0.12,16,16), new THREE.MeshBasicMaterial({color:0x334155}));
+gizmoScene.add(gizmoSphere);
+
+const ray = new THREE.Raycaster();
+gizmoCanvas.addEventListener('click', (e)=>{
+  const r = gizmoCanvas.getBoundingClientRect();
+  const x = ((e.clientX - r.left)/r.width)*2-1;
+  const y = -((e.clientY - r.top)/r.height)*2+1;
+  ray.setFromCamera({x,y}, gizmoCam);
+  const hits = ray.intersectObjects([axX,axY,axZ], true);
+  if (!hits.length) return;
+  let o = hits[0].object;
+  while (o && !o.userData.axis) o = o.parent;
+  if (!o) return;
+  const label = o.userData.axis;
+  // map label to Three world direction
+  const dirMap = { X: new THREE.Vector3(1,0,0), Y: new THREE.Vector3(0,0,-1), Z: new THREE.Vector3(0,1,0) };
+  const d = dirMap[label];
+  const target = controls.target;
+  const dist = camera.position.distanceTo(target);
+  const currentDot = camera.position.clone().sub(target).normalize().dot(d);
+  const sign = currentDot > 0 ? -1 : 1; // toggle side
+  const pos = d.clone().multiplyScalar(dist*sign).add(target);
+  camera.position.copy(pos);
+  camera.up.set(0,1,0);
+  controls.update();
+});
+
+// ---------- Loop & Resize ----------
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = Math.max(1, rect.width);
+  const h = Math.max(1, rect.height - 32); // header
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+  gizmoRenderer.setSize(96,96,false);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  // sync gizmo
+  gizmoGroup.quaternion.copy(camera.quaternion).invert();
+  gizmoRenderer.render(gizmoScene, gizmoCam);
+}
+animate();
+
+// ---------- UI Wiring ----------
+const toastEl = document.getElementById('toast');
+let toastT;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.style.opacity = '1';
+  clearTimeout(toastT);
+  toastT = setTimeout(()=> toastEl.style.opacity='0', 1400);
+}
+
+document.getElementById('saveBtn').onclick = saveCurrent;
+document.getElementById('renderBtn').onclick = () => { renderScene(); toast('Rendered'); };
+document.getElementById('resetView').onclick = () => renderScene();
+document.getElementById('newBtn').onclick = newFile;
+document.getElementById('importBtn').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const f = e.target.files?.[0]; if (!f) return;
+  const txt = await f.text();
+  filenameInput.value = f.name;
+  editor.setValue(txt);
+  saveCurrent(); renderScene();
+});
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([editor.getValue()], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filenameInput.value || 'model.scad';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+const libSnippets = {
+  bosl2: 'include <BOSL2/std.scad>',
+  mcad: 'use <MCAD/boxes.scad>',
+  round: 'include <Round-Anything/polyround.scad>',
+  nop: 'include <NopSCADlib/core.scad>'
+};
+document.getElementById('libSelect').addEventListener('change', (e)=>{
+  const v = e.target.value; if (!v) return;
+  editor.replaceSelection(libSnippets[v] + '\n');
+  e.target.value=''; editor.focus();
+});
+document.querySelectorAll('[data-lib]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const v = btn.getAttribute('data-lib');
+    editor.replaceSelection(libSnippets[v] + '\n');
+    editor.focus(); toast('Inserted '+v);
+  });
+});
+
+document.getElementById('menuBtn').onclick = () => {
+  document.getElementById('sidebar').classList.toggle('-translate-x-full');
+};
+
+// shortcuts
+window.addEventListener('keydown', (e)=>{
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') { e.preventDefault(); saveCurrent(); }
+  if (e.key === 'F5') { e.preventDefault(); renderScene(); toast('Rendered'); }
+});
+
+// auto render debounce
+let renderTO;
+editor.on('change', ()=>{
+  clearTimeout(renderTO);
+  renderTO = setTimeout(renderScene, 400);
+});
+
+// initial render
+renderScene();
+
+// close sidebar on mobile after file open
+const origOpen = openFile;
+openFile = (n)=>{ origOpen(n); if (window.innerWidth<1024) document.getElementById('sidebar').classList.add('-translate-x-full'); };
+
+</script>
+</body>
+</html>
