@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenSCAD Web IDE Ultimate</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    "openscad-wasm": "https://esm.sh/openscad-wasm@1.3.0",
+    "jszip": "https://esm.sh/jszip@3.10.1",
+    "idb-keyval": "https://esm.sh/idb-keyval@6.2.1",
+    "codemirror": "https://esm.sh/codemirror@6.0.1",
+    "@codemirror/view": "https://esm.sh/@codemirror/view@6.35.0",
+    "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1",
+    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.3.3",
+    "@codemirror/lang-cpp": "https://esm.sh/@codemirror/lang-cpp@6.0.2",
+    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2"
+  }
+}
+</script>
+<style>
+html,body{height:100%;background:#0b0e13;color:#e5e7eb;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#0b0e13}::-webkit-scrollbar-thumb{background:#1f2937;border-radius:4px}
+.cm-editor{height:100%!important;font-size:14px}.cm-scroller{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tab-active{background:#1e2533;color:white}
+.gutter:hover{background:#3b82f6!important}
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+// Register service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('SW registered', reg.scope);
+    }).catch(console.error);
+  });
+}
+</script>
+
+</head>
+<body class="h-screen overflow-hidden select-none">
+<div class="h-screen flex flex-col">
+  <!-- Top Bar -->
+  <header class="h-12 bg-[#0e1116] border-b border-[#1f2937] flex items-center px-3 gap-2 z-30">
+    <div class="flex items-center gap-2 mr-3">
+      <div class="w-7 h-7 rounded bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center"><i class="ri-cube-line text-white"></i></div>
+      <span class="font-semibold tracking-tight">OpenSCAD IDE</span>
+      <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2533] text-blue-300 ml-1">ULTIMATE</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <button id="btn-new" class="h-7 px-2.5 rounded hover:bg-[#1a2030] text-xs flex items-center gap-1"><i class="ri-file-add-line"></i> New</button>
+      <button id="btn-open" class="h-7 px-2.5 rounded hover:bg-[#1a2030] text-xs flex items-center gap-1"><i class="ri-folder-open-line"></i> Open</button>
+      <button id="btn-save" class="h-7 px-2.5 rounded hover:bg-[#1a2030] text-xs flex items-center gap-1"><i class="ri-save-line"></i> Save</button>
+      <div class="w-px h-5 bg-[#1f2937] mx-1"></div>
+      <button id="btn-import" class="h-7 px-2.5 rounded hover:bg-[#1a2030] text-xs flex items-center gap-1"><i class="ri-upload-2-line"></i> Import STL</button>
+    </div>
+    <div class="flex-1"></div>
+    <div class="flex items-center gap-1.5">
+      <button id="btn-auto" class="h-7 px-2.5 rounded bg-[#1e2533] hover:bg-[#232c3d] text-xs flex items-center gap-1.5 border border-[#2a3441]"><i class="ri-refresh-line"></i> Auto</button>
+      <button id="btn-render" class="h-8 px-4 rounded bg-blue-600 hover:bg-blue-500 text-sm font-medium flex items-center gap-1.5 shadow shadow-blue-900/30"><i class="ri-play-fill"></i> Render</button>
+      <div class="relative">
+        <button id="btn-export" class="h-8 px-3 rounded bg-[#1a2030] hover:bg-[#232c3d] text-xs flex items-center gap-1 border border-[#2a3441]">Export <i class="ri-arrow-down-s-line"></i></button>
+        <div id="export-menu" class="hidden absolute right-0 mt-1 w-40 bg-[#11151d] border border-[#232938] rounded-lg shadow-xl p-1 z-50">
+          <button data-ext="stl" class="w-full text-left px-2.5 py-1.5 hover:bg-[#1a2030] rounded text-xs">STL</button>
+          <button data-ext="3mf" class="w-full text-left px-2.5 py-1.5 hover:bg-[#1a2030] rounded text-xs">3MF</button>
+          <button data-ext="amf" class="w-full text-left px-2.5 py-1.5 hover:bg-[#1a2030] rounded text-xs">AMF</button>
+          <button data-ext="off" class="w-full text-left px-2.5 py-1.5 hover:bg-[#1a2030] rounded text-xs">OFF</button>
+          <button data-ext="dxf" class="w-full text-left px-2.5 py-1.5 hover:bg-[#1a2030] rounded text-xs">DXF</button>
+          <button data-ext="svg" class="w-full text-left px-2.5 py-1.5 hover:bg-[#1a2030] rounded text-xs">SVG</button>
+        </div>
+      </div>
+    </div>
+    <input id="file-open" type="file" accept=".scad,.txt" hidden>
+    <input id="file-stl" type="file" accept=".stl" hidden>
+  </header>
+
+  <!-- Main -->
+  <div class="flex flex-1 min-h-0">
+    <!-- Left -->
+    <aside id="left" class="w-[300px] shrink-0 bg-[#0e1116] border-r border-[#1f2937] flex flex-col" style="resize:horizontal;overflow:auto;min-width:240px;max-width:480px">
+      <div class="flex border-b border-[#1f2937] text-xs">
+        <button data-tab="files" class="tab px-3 py-2 hover:bg-[#141a23] tab-active">Files</button>
+        <button data-tab="libs" class="tab px-3 py-2 hover:bg-[#141a23]">Libraries</button>
+        <button data-tab="examples" class="tab px-3 py-2 hover:bg-[#141a23]">Examples</button>
+      </div>
+      <div id="panel-files" class="flex-1 overflow-auto p-2">
+        <div class="flex justify-between items-center mb-2 px-1">
+          <span class="text-[11px] uppercase tracking-wider text-gray-500">Project Files</span>
+          <button id="btn-new-file" class="text-[11px] hover:text-blue-400"><i class="ri-add-line"></i></button>
+        </div>
+        <div id="file-list" class="space-y-0.5"></div>
+        <div class="mt-4 px-1">
+          <div class="text-[11px] uppercase tracking-wider text-gray-500 mb-1">GitHub</div>
+          <button id="btn-gist" class="w-full text-[11px] py-1.5 rounded bg-[#141a23] hover:bg-[#1a2030] border border-[#232938]"><i class="ri-github-line mr-1"></i>Save to Gist</button>
+        </div>
+      </div>
+      <div id="panel-libs" class="flex-1 overflow-auto p-2 hidden">
+        <input id="lib-search" placeholder="Search libraries…" class="w-full mb-2 px-2.5 py-1.5 bg-[#0b0e13] border border-[#232938] rounded text-xs outline-none focus:border-blue-500">
+        <div id="lib-status" class="text-[11px] text-gray-500 px-1 mb-2">Libraries not loaded - click Render</div>
+        <div id="lib-tree" class="text-xs"></div>
+      </div>
+      <div id="panel-examples" class="flex-1 overflow-auto p-2 hidden">
+        <div id="examples-grid" class="space-y-1"></div>
+      </div>
+    </aside>
+
+    <!-- Center -->
+    <main class="flex-1 relative min-w-0 bg-[#0b0e13]">
+      <div id="editor" class="absolute inset-0"></div>
+      <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+        <div class="text-[10px] px-1.5 py-0.5 rounded bg-black/60 border border-[#232938]">Ctrl+Enter: Render</div>
+      </div>
+    </main>
+
+    <!-- Right -->
+    <aside id="right" class="w-[380px] shrink-0 bg-[#0e1116] border-l border-[#1f2937] flex flex-col" style="resize:horizontal;overflow:auto;min-width:300px;max-width:600px;direction:rtl">
+      <div style="direction:ltr" class="h-full flex flex-col">
+        <div id="preview" class="h-[55%] relative bg-[#080a0e] border-b border-[#1f2937]">
+          <div class="absolute top-2 left-2 z-10 flex gap-1">
+            <button id="view-reset" class="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-[12px]"><i class="ri-focus-3-line"></i></button>
+            <button id="view-wire" class="w-6 h-6 rounded bg-black/60 hover:bg-black/80 flex items-center justify-center text-[12px]"><i class="ri-grid-line"></i></button>
+          </div>
+          <div id="preview-info" class="absolute bottom-2 left-2 text-[10px] px-1.5 py-0.5 rounded bg-black/70 text-gray-300">No model</div>
+        </div>
+        <div id="vresizer" class="h-1 bg-[#1f2937] hover:bg-blue-600 cursor-ns-resize shrink-0"></div>
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="h-8 flex items-center justify-between px-3 border-b border-[#1f2937] bg-[#10141c]">
+            <div class="flex items-center gap-1.5 text-xs font-medium"><i class="ri-equalizer-line text-blue-400"></i> Customizer</div>
+            <button id="btn-reset" class="text-[11px] px-2 py-0.5 rounded hover:bg-[#1a2030] text-gray-400">Reset</button>
+          </div>
+          <div id="customizer-content" class="flex-1 overflow-auto p-3"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Console -->
+  <footer id="console" class="h-[150px] border-t border-[#1f2937] bg-[#0a0d12] flex flex-col shrink-0" style="resize:vertical;overflow:auto">
+    <div class="h-7 flex items-center justify-between px-3 border-b border-[#1a2030] bg-[#0e1116]">
+      <div class="flex items-center gap-2 text-[11px]"><i class="ri-terminal-box-line text-gray-500"></i><span class="uppercase tracking-wider text-gray-500">Console</span><span id="console-status" class="text-green-400">ready</span></div>
+      <button id="btn-clear-console" class="text-[11px] hover:text-white text-gray-500">Clear</button>
+    </div>
+    <div id="console-log" class="flex-1 overflow-auto p-2 font-mono text-[11px] leading-relaxed"></div>
+  </footer>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection } from '@codemirror/view';
+import { EditorState, Compartment } from '@codemirror/state';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { bracketMatching, syntaxHighlighting, defaultHighlightStyle, StreamLanguage } from '@codemirror/language';
+import { cpp } from '@codemirror/lang-cpp';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { basicSetup } from 'codemirror';
+import JSZip from 'jszip';
+import { get, set } from 'idb-keyval';
+
+const $ = s => document.querySelector(s);
+const log = (m, t='info') => {
+  const el = $('#console-log');
+  const d = document.createElement('div');
+  d.className = t==='error'?'text-red-400':t==='success'?'text-green-400':t==='warn'?'text-amber-400':'text-gray-300';
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${m}`;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+  $('#console-status').textContent = t==='error'?'error':t==='success'?'ok':'ready';
+  $('#console-status').className = t==='error'?'text-red-400':t==='success'?'text-green-400':'text-gray-500';
+};
+
+let editor, scene, camera, renderer, controls, mesh;
+let scadInstance = null, scadLoading = null;
+let autoRender = true, renderTimeout;
+let customizerParams = [], customizerValues = {};
+let currentFile = 'box.scad';
+let files = JSON.parse(localStorage.getItem('oscad-files')||'{}');
+const LIBRARIES = [
+  {id:'BOSL2', name:'BOSL2', url:'https://github.com/BelfrySCAD/BOSL2/archive/refs/heads/master.zip', prefix:'BOSL2-master/'},
+  {id:'MCAD', name:'MCAD', url:'https://github.com/openscad/MCAD/archive/master.zip', prefix:'MCAD-master/'},
+  {id:'RoundAnything', name:'Round-Anything', url:'https://github.com/Irev-Dev/Round-Anything/archive/master.zip', prefix:'Round-Anything-master/'},
+  {id:'dotSCAD', name:'dotSCAD', url:'https://github.com/dotscad/dotscad/archive/master.zip', prefix:'dotscad-master/'},
+  {id:'NopSCADlib', name:'NopSCADlib', url:'https://github.com/nophead/NopSCADlib/archive/master.zip', prefix:'NopSCADlib-master/'},
+  {id:'YAPP', name:'YAPP_Box', url:'https://github.com/mrWheel/YAPP_Box/archive/refs/heads/main.zip', prefix:'YAPP_Box-main/'},
+  {id:'threads', name:'threads.scad', url:'https://github.com/rcolyer/threads-scad/archive/master.zip', prefix:'threads-scad-master/'},
+  {id:'BOSL', name:'BOSL', url:'https://github.com/revarbat/BOSL/archive/master.zip', prefix:'BOSL-master/'},
+  {id:'UB', name:'UB.scad', url:'https://github.com/UBot3D/UB.scad/archive/master.zip', prefix:'UB.scad-master/'},
+  {id:'scad-utils', name:'scad-utils', url:'https://github.com/openscad/scad-utils/archive/master.zip', prefix:'scad-utils-master/'},
+];
+let libraryFiles = {};
+
+const DEFAULT_CODE = `/* [Box Dimensions] */
+width = 40; // [20:100]
+height = 30; // [10:80]
+depth = 20; // [10:60]
+
+/* [Options] */
+wall = 2; // [1:5]
+fillet = 3; // [0:10]
+lid = true;
+
+/* [Style] */
+color_code = "#3b82f6"; // color
+material = "PLA"; // ["PLA","ABS","PETG","TPU"]
+
+difference() {
+  color(color_code)
+  minkowski() {
+    cube([width-2*fillet, height-2*fillet, depth], center=true);
+    cylinder(r=fillet, h=0.1, $fn=48);
+  }
+  translate([0,0,wall])
+    cube([width-2*wall, height-2*wall, depth], center=true);
+}
+
+if (lid) {
+  translate([0, height+12, 0])
+  cube([width, height, 2.5], center=true);
+}
+
+// echo(str("Box: ", width, "x", height, " material:", material))
+`;
+
+const EXAMPLES = [
+  {name:'01 Parametric Box', code:DEFAULT_CODE},
+  {name:'02 BOSL2 Rounded', code:`include <BOSL2/std.scad>
+/* [Size] */
+s=30; // [10:60]
+r=5; // [1:15]
+cuboid([s,s,s], rounding=r, edges="ALL", $fn=64);`},
+  {name:'03 MCAD Gear', code:`use <MCAD/gears.scad>
+/* [Gear] */
+teeth=24; // [12:60]
+pitch=5; // [3:10]
+gear(number_of_teeth=teeth, circular_pitch=pitch, gear_thickness=6, hub_thickness=8);`},
+  {name:'04 Threaded Bolt', code:`use <threads/threads.scad>
+/* [Bolt] */
+d=8; // [4:16]
+l=30; // [10:80]
+metric_thread(d, 1.25, l);`},
+  {name:'05 Round Anything', code:`use <RoundAnything/polyRound.scad>
+pts=[[0,0,2],[30,0,2],[30,20,4],[15,30,4],[0,20,2]];
+linear_extrude(5) polygon(polyRound(pts, 30));`},
+  {name:'06 Honeycomb', code:`use <UB/honeycomb.scad>
+/* [Honey] */
+size=80; // [40:120]
+h=4; // [2:10]
+honeycomb(size, h, 7, 1.5);`},
+  {name:'07 YAPP Box', code:`include <YAPP/YAPP_Box.scad>
+// YAPP parametric enclosure - see library`},
+  {name:'08 Voronoi', code:`use <dotSCAD/voronoi2.scad>
+pts = [for(i=[0:40]) [rands(0,60,1)[0], rands(0,40,1)[0]]];
+linear_extrude(2) difference(){ square([60,40]); voronoi2(pts); }`},
+  {name:'09 Knurled Knob', code:`/* [Knob] */
+d=25; // [15:40]
+h=15; // [8:25]
+knurl=1.2; // [0.5:2]
+cylinder(d=d, h=h, $fn=64);
+for(i=[0:36]) rotate([0,0,i*10]) translate([d/2,0,0]) cube([knurl,1,h],center=true);`},
+  {name:'10 Cable Chain', code:`/* [Chain] */
+links=8; // [3:20]
+for(i=[0:links-1]) translate([i*16,0,0]) difference(){ hull(){ cylinder(d=14,h=8,$fn=32); translate([8,0,0]) cylinder(d=14,h=8,$fn=32);} cylinder(d=8,h=10,$fn=32); }`},
+  {name:'11 Text Plaque', code:`/* [Text] */
+txt="OpenSCAD"; // 
+size=12; // [6:24]
+linear_extrude(4) text(txt, size=size, font="Liberation Sans:style=Bold", halign="center");`},
+  {name:'12 Phone Stand', code:`/* [Stand] */
+angle=62; // [50:75]
+w=85; // [70:110]
+rotate([angle,0,0]) difference(){ cube([w,3,130],center=true); translate([0,0,5]) cube([w-8,5,120],center=true); }`},
+  {name:'13 Vase', code:`/* [Vase] */
+h=90; // [50:150]
+r1=28; // [20:40]
+r2=18; // [12:30]
+rotate_extrude($fn=128) offset(r=1) polygon([[0,0],[r1,0],[r2,h],[0,h]]);`},
+  {name:'14 Fidget', code:`difference(){ hull() for(a=[0:120:240]) translate([25*cos(a),25*sin(a)]) circle(d=22,$fn=64); for(a=[0:120:240]) translate([25*cos(a),25*sin(a)]) circle(d=14,$fn=32); circle(d=22,$fn=64); }`},
+  {name:'15 Hex Tray', code:`/* [Tray] */
+cols=6; // [3:10]
+rows=4; // [2:8]
+for(x=[0:cols-1]) for(y=[0:rows-1]) translate([x*17.3 + (y%2)*8.65, y*15,0]) difference(){ cylinder(d=16.5,h=10,$fn=6); cylinder(d=14,h=11,$fn=6); }`},
+  {name:'16 Gear Pair', code:`use <MCAD/gears.scad>
+gear(number_of_teeth=16, circular_pitch=6);
+translate([28,0,0]) gear(number_of_teeth=32, circular_pitch=6);`},
+  {name:'17 Lattice Cube', code:`/* [Lattice] */
+s=42; // [24:80]
+t=2.5; // [1:4]
+difference(){ cube(s,center=true); for(a=[0:2]) rotate([a*90,0,0]) for(i=[-1:1]) for(j=[-1:1]) translate([i*(s/3), j*(s/3),0]) cube([s*0.28,s*0.28,s+2],center=true); }`},
+  {name:'18 Parametric Hook', code:`/* [Hook] */
+r=22; // [15:35]
+d=5; // [3:8]
+rotate_extrude(angle=270,$fn=64) translate([r,0]) circle(d=d,$fn=32);`},
+  {name:'19 Enclosure', code:`/* [Case] */
+w=60; // [40:100]
+h=40; // [30:80]
+d=25; // [15:50]
+difference(){ cube([w,h,d]); translate([2,2,2]) cube([w-4,h-4,d]); }`},
+  {name:'20 Spiral', code:`linear_extrude(height=20, twist=360, $fn=100) translate([8,0]) circle(3,$fn=24);`},
+];
+
+async function getSCAD(){
+  if(scadInstance) return scadInstance;
+  if(!scadLoading){
+    scadLoading = (async ()=>{
+      log('Loading OpenSCAD WASM engine…');
+      const mod = await import('openscad-wasm');
+      const inst = await mod.default({noInitialRun:true, print:t=>log(t), printErr:t=>log(t,'error')});
+      try{ inst.FS.mkdirTree('/libraries'); }catch{}
+      try{ inst.FS.mkdirTree('/tmp'); }catch{}
+      scadInstance = inst;
+      log('Engine ready','success');
+      await loadLibraries();
+      return inst;
+    })();
+  }
+  return scadLoading;
+}
+
+async function ensureLibrary(lib){
+  const status = $('#lib-status');
+  status.textContent = `Loading ${lib.name}…`;
+  const cached = await get(`oscad-lib-${lib.id}`).catch(()=>null);
+  if(cached && cached.length){
+    libraryFiles[lib.id] = cached;
+    try{ scadInstance.FS.mkdirTree(`/libraries/${lib.id}`); }catch{}
+    for(const f of cached){ 
+      try{
+        const dir = `/libraries/${lib.id}/${f.path}`.split('/').slice(0,-1).join('/');
+        try{ scadInstance.FS.mkdirTree(dir); }catch{}
+        scadInstance.FS.writeFile(`/libraries/${lib.id}/${f.path}`, f.content);
+      }catch{}
+    }
+    status.textContent = `${lib.name} (cached)`;
+    return;
+  }
+  try{
+    const ctrl = new AbortController(); const to=setTimeout(()=>ctrl.abort(),8000);
+    const res = await fetch(lib.url,{signal:ctrl.signal, mode:'cors'});
+    clearTimeout(to);
+    if(!res.ok) throw new Error('fetch');
+    const buf = await res.arrayBuffer();
+    const zip = await JSZip.loadAsync(buf);
+    const filesOut = [];
+    await Promise.all(Object.values(zip.files).map(async e=>{
+      if(e.dir) return;
+      if(!e.name.startsWith(lib.prefix)) return;
+      if(!e.name.endsWith('.scad')) return;
+      const rel = e.name.slice(lib.prefix.length);
+      const content = await e.async('string');
+      filesOut.push({path:rel, content});
+      try{
+        const full = `/libraries/${lib.id}/${rel}`;
+        const dir = full.split('/').slice(0,-1).join('/');
+        try{ scadInstance.FS.mkdirTree(dir);}catch{}
+        scadInstance.FS.writeFile(full, content);
+      }catch{}
+    }));
+    libraryFiles[lib.id]=filesOut;
+    await set(`oscad-lib-${lib.id}`, filesOut);
+    status.textContent = `${lib.name} loaded (${filesOut.length} files)`;
+    log(`${lib.name} loaded`,'success');
+  }catch(e){
+    log(`${lib.name} offline - using stub`,'warn');
+    const stub = [{path:'std.scad', content:`// ${lib.name} offline stub\nmodule stub() cube(10);`}];
+    libraryFiles[lib.id]=stub;
+    try{ scadInstance.FS.mkdirTree(`/libraries/${lib.id}`);}catch{}
+    scadInstance.FS.writeFile(`/libraries/${lib.id}/std.scad`, stub[0].content);
+    await set(`oscad-lib-${lib.id}`, stub);
+    status.textContent = `${lib.name} (offline)`;
+  }
+}
+
+async function loadLibraries(){
+  $('#lib-status').textContent = 'Loading libraries…';
+  for(const lib of LIBRARIES){ await ensureLibrary(lib); renderLibraryTree(); }
+  $('#lib-status').textContent = `Libraries ready (${Object.values(libraryFiles).reduce((a,b)=>a+b.length,0)} files)`;
+}
+
+function renderLibraryTree(filter=''){
+  const tree = $('#lib-tree'); tree.innerHTML='';
+  LIBRARIES.forEach(lib=>{
+    const files = (libraryFiles[lib.id]||[]).filter(f=>!filter || f.path.toLowerCase().includes(filter.toLowerCase()));
+    if(!files.length && filter) return;
+    const det = document.createElement('details'); det.open = true; det.className='mb-1';
+    const sum = document.createElement('summary'); sum.className='cursor-pointer px-1.5 py-1 rounded hover:bg-[#141a23] flex items-center gap-1.5'; sum.innerHTML=`<i class="ri-folder-3-line text-gray-500"></i><span>${lib.name}</span><span class="text-[10px] text-gray-600 ml-auto">${files.length}</span>`;
+    det.appendChild(sum);
+    const list = document.createElement('div'); list.className='ml-4 border-l border-[#1a2030] pl-2';
+    files.slice(0,300).forEach(f=>{
+      const item = document.createElement('div'); item.className='py-0.5 px-1.5 rounded hover:bg-[#1a2030] cursor-pointer flex items-center gap-1.5'; item.innerHTML=`<i class="ri-file-code-line text-gray-600 text-[11px]"></i><span class="truncate">${f.path}</span>`;
+      item.title = `include <${lib.id}/${f.path}>`;
+      item.onclick = ()=> insertText(`include <${lib.id}/${f.path}>\n`);
+      item.oncontextmenu = (e)=>{ e.preventDefault(); insertText(`use <${lib.id}/${f.path}>\n`); };
+      list.appendChild(item);
+    });
+    det.appendChild(list); tree.appendChild(det);
+  });
+}
+
+function initThree(){
+  const cont = $('#preview');
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x080a0e);
+  camera = new THREE.PerspectiveCamera(45,1,0.1,2000); camera.position.set(90,70,110);
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true}); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  cont.appendChild(renderer.domElement);
+  controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping=true; controls.dampingFactor=0.08;
+  scene.add(new THREE.HemisphereLight(0x9fb5ff,0x0a0e15,0.8));
+  const dl = new THREE.DirectionalLight(0xffffff,1.1); dl.position.set(2,3,4); scene.add(dl);
+  const grid = new THREE.GridHelper(200,40,0x1e293b,0x111827); grid.position.y=-0.01; scene.add(grid);
+  const resize = ()=>{ const r=cont.getBoundingClientRect(); renderer.setSize(r.width,r.height); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); };
+  new ResizeObserver(resize).observe(cont); resize();
+  (function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); })();
+}
+
+function loadSTL(data){
+  try{
+    scene.children.filter(o=>o.userData.isModel).forEach(o=>scene.remove(o));
+    const loader = new STLLoader();
+    const geom = loader.parse(data.buffer.slice(0));
+    geom.computeVertexNormals(); geom.center();
+    const mat = new THREE.MeshStandardMaterial({color:0x60a5fa, metalness:0.15, roughness:0.42, flatShading:false});
+    mesh = new THREE.Mesh(geom, mat); mesh.userData.isModel=true;
+    scene.add(mesh);
+    const box = new THREE.Box3().setFromObject(mesh); const size = box.getSize(new THREE.Vector3()).length();
+    controls.target.set(0,0,0); camera.position.set(size*0.9,size*0.7,size*0.9); controls.update();
+    $('#preview-info').textContent = `${(data.length/1024).toFixed(1)} KB • ${geom.attributes.position.count/3|0} tris`;
+  }catch(e){ log('Preview error: '+e.message,'error'); }
+}
+
+function initEditor(){
+  const extensions = [
+    basicSetup,
+    cpp(),
+    oneDark,
+    lineNumbers(), highlightActiveLineGutter(), bracketMatching(),
+    syntaxHighlighting(defaultHighlightStyle),
+    EditorView.lineWrapping,
+    history(),
+    keymap.of([...defaultKeymap, ...historyKeymap,
+      {key:'Mod-Enter', run:()=>{render();return true}},
+      {key:'Mod-s', run:()=>{saveFile();return true}}
+    ]),
+    EditorView.updateListener.of(u=>{ if(u.docChanged){ scheduleParse(); if(autoRender) scheduleRender(); }})
+  ];
+  editor = new EditorView({ state: EditorState.create({doc: files[currentFile] || DEFAULT_CODE, extensions}), parent: $('#editor') });
+}
+
+let parseTimeout;
+function scheduleParse(){ clearTimeout(parseTimeout); parseTimeout=setTimeout(parseCustomizer,300); }
+
+function parseCustomizer(){
+  const code = editor.state.doc.toString();
+  const lines = code.split('\n');
+  let group='Parameters'; const params=[];
+  const groupRe=/\/\*\s*\[([^\]]+)\]\s*\*\//;
+  const varRe=/^\s*([A-Za-z_]\w*)\s*=\s*([^;]+);\s*(?:\/\/\s*(.*))?$/;
+  for(const line of lines){
+    const gm=line.match(groupRe); if(gm){ group=gm[1].trim(); continue; }
+    const vm=line.match(varRe); if(!vm) continue;
+    const name=vm[1]; let def=vm[2].trim(); const comment=vm[3]||'';
+    let type='number', min,max,step=1, options;
+    if(def==='true'||def==='false'){ type='checkbox'; def=def==='true'; }
+    else if(/^".*"$/.test(def)){ type='string'; def=def.slice(1,-1); }
+    else if(!isNaN(Number(def))){ def=Number(def); }
+    const rs=comment.match(/\[\s*([-\d.]+)\s*:\s*([-\d.]+)\s*:\s*([-\d.]+)\s*\]/);
+    const r=comment.match(/\[\s*([-\d.]+)\s*:\s*([-\d.]+)\s*\]/);
+    const dd=[...comment.matchAll(/"([^"]+)"/g)].map(m=>m[1]);
+    if(rs){ min=+rs[1];max=+rs[2];step=+rs[3]; type='slider'; }
+    else if(r){ min=+r[1];max=+r[2]; type='slider'; }
+    else if(dd.length>1){ options=dd; type='dropdown'; }
+    if(/slider/i.test(comment) && type==='number') type='slider';
+    if(/color/i.test(comment) || /^#/.test(String(def))) type='color';
+    params.push({name, default:def, type, min, max, step, options, group});
+    if(!(name in customizerValues)) customizerValues[name]=def;
+  }
+  customizerParams=params; buildCustomizer(params);
+}
+
+function buildCustomizer(params){
+  const c = $('#customizer-content'); c.innerHTML='';
+  if(!params.length){ c.innerHTML=`<div class="text-[11px] text-gray-500 p-4 text-center">No parameters found.<br>Use <code>/* [Group] */</code> and <code>// [min:max]</code></div>`; return; }
+  const groups={}; params.forEach(p=>(groups[p.group]??=[]).push(p));
+  Object.entries(groups).forEach(([gName,list])=>{
+    const det=document.createElement('details'); det.open=true; det.className='mb-3';
+    const sum=document.createElement('summary'); sum.className='cursor-pointer text-[12px] font-medium text-gray-300 mb-2 list-none flex items-center gap-1'; sum.innerHTML=`<i class="ri-arrow-down-s-line"></i>${gName}`;
+    det.appendChild(sum);
+    list.forEach(p=>{
+      const wrap=document.createElement('div'); wrap.className='mb-2.5';
+      const lab=document.createElement('label'); lab.className='block text-[11px] text-gray-400 mb-1'; lab.textContent=p.name; wrap.appendChild(lab);
+      const val = customizerValues[p.name] ?? p.default;
+      let input;
+      const base='w-full bg-[#0b0e13] border border-[#232938] rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500';
+      switch(p.type){
+        case 'checkbox':
+          input=document.createElement('input'); input.type='checkbox'; input.checked=!!val; input.className='w-4 h-4 accent-blue-600';
+          input.onchange=()=>{ customizerValues[p.name]=input.checked; scheduleRender(); };
+          wrap.appendChild(input); break;
+        case 'slider':
+          const row=document.createElement('div'); row.className='flex items-center gap-2';
+          input=document.createElement('input'); input.type='range'; input.min=p.min??0; input.max=p.max??100; input.step=p.step??1; input.value=val; input.className='flex-1 accent-blue-600';
+          const num=document.createElement('input'); num.type='number'; num.value=val; num.step=p.step??1; num.className='w-16 '+base;
+          input.oninput=()=>{ num.value=input.value; customizerValues[p.name]=+input.value; scheduleRender(); };
+          num.oninput=()=>{ input.value=num.value; customizerValues[p.name]=+num.value; scheduleRender(); };
+          row.append(input,num); wrap.appendChild(row); break;
+        case 'dropdown':
+          input=document.createElement('select'); input.className=base; p.options.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; input.appendChild(op); }); input.value=val;
+          input.onchange=()=>{ customizerValues[p.name]=input.value; scheduleRender(); }; wrap.appendChild(input); break;
+        case 'color':
+          input=document.createElement('input'); input.type='color'; input.value=toHex(val); input.className='w-full h-8 cursor-pointer bg-transparent';
+          input.oninput=()=>{ customizerValues[p.name]=input.value; scheduleRender(); }; wrap.appendChild(input); break;
+        case 'string':
+          input=document.createElement('input'); input.type='text'; input.value=val; input.className=base;
+          input.oninput=()=>{ customizerValues[p.name]=input.value; scheduleRender(); }; wrap.appendChild(input); break;
+        default:
+          input=document.createElement('input'); input.type='number'; input.value=val; input.step='any'; input.className=base;
+          input.oninput=()=>{ customizerValues[p.name]=Number(input.value); scheduleRender(); }; wrap.appendChild(input);
+      }
+      det.appendChild(wrap);
+    });
+    c.appendChild(det);
+  });
+}
+const toHex=v=>{ if(typeof v==='string'&&v.startsWith('#'))return v; if(Array.isArray(v)){ const [r,g,b]=v.map(x=>Math.round(x*255)); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); } return '#3b82f6'; };
+
+function scheduleRender(){ clearTimeout(renderTimeout); renderTimeout=setTimeout(render,400); }
+
+async function render(){
+  const scad = await getSCAD();
+  const code = editor.state.doc.toString();
+  try{ scad.FS.writeFile('/input.scad', code); }catch{}
+  const args=['/input.scad','-o','/out.stl','-I','/libraries','--export-format','binstl'];
+  customizerParams.forEach(p=>{
+    let v = customizerValues[p.name]; if(v===undefined) return;
+    let val=v;
+    if(p.type==='string'||p.type==='dropdown') val=`"${String(v).replace(/"/g,'\\"')}"`;
+    else if(p.type==='checkbox') val=v?'true':'false';
+    else if(p.type==='color'){ const h=String(v).replace('#',''); const r=parseInt(h.slice(0,2),16)/255; const g=parseInt(h.slice(2,4),16)/255; const b=parseInt(h.slice(4,6),16)/255; val=`[${r.toFixed(3)},${g.toFixed(3)},${b.toFixed(3)}]`; }
+    args.push('-D', `${p.name}=${val}`);
+  });
+  $('#console-status').textContent='rendering…';
+  try{
+    const t0=performance.now();
+    scad.callMain(args);
+    const out = scad.FS.readFile('/out.stl');
+    loadSTL(out);
+    log(`Rendered in ${(performance.now()-t0).toFixed(0)}ms`,'success');
+  }catch(e){ log(e.message||String(e),'error'); }
+}
+
+async function exportAs(ext){
+  const scad = await getSCAD();
+  const code = editor.state.doc.toString();
+  scad.FS.writeFile('/input.scad', code);
+  const out=`/out.${ext}`;
+  try{
+    scad.callMain(['/input.scad','-o',out,'-I','/libraries']);
+    const data = scad.FS.readFile(out);
+    const blob = new Blob([data],{type:'application/octet-stream'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`model.${ext}`; a.click(); URL.revokeObjectURL(a.href);
+    log(`Exported ${ext.toUpperCase()}`,'success');
+  }catch(e){ log('Export failed: '+e.message,'error'); }
+}
+
+function insertText(txt){ editor.dispatch({changes:{from:editor.state.selection.main.from, insert:txt}}); editor.focus(); }
+
+function setupFiles(){
+  if(!Object.keys(files).length){ files[currentFile]=DEFAULT_CODE; localStorage.setItem('oscad-files', JSON.stringify(files)); }
+  refreshFiles();
+  loadFile(currentFile);
+}
+function refreshFiles(){
+  const list=$('#file-list'); list.innerHTML='';
+  Object.keys(files).sort().forEach(name=>{
+    const div=document.createElement('div'); div.className='group flex items-center justify-between px-2 py-1.5 rounded hover:bg-[#141a23] cursor-pointer text-xs '+(name===currentFile?'bg-[#1a2030] text-white':'text-gray-300'); div.innerHTML=`<span class="truncate"><i class="ri-file-code-line mr-1.5 text-gray-500"></i>${name}</span><button class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400" title="Delete"><i class="ri-close-line"></i></button>`;
+    div.onclick=(e)=>{ if(e.target.closest('button')){ delete files[name]; localStorage.setItem('oscad-files',JSON.stringify(files)); refreshFiles(); return;} loadFile(name); };
+    list.appendChild(div);
+  });
+}
+function loadFile(name){ currentFile=name; const code=files[name]||''; editor.dispatch({changes:{from:0,to:editor.state.doc.length,insert:code}}); refreshFiles(); parseCustomizer(); }
+function saveFile(){ files[currentFile]=editor.state.doc.toString(); localStorage.setItem('oscad-files', JSON.stringify(files)); log(`Saved ${currentFile}`,'success'); refreshFiles(); }
+function newFile(){ const name=prompt('File name:',`part${Object.keys(files).length+1}.scad`); if(!name) return; files[name]='cube(20);'; currentFile=name; localStorage.setItem('oscad-files',JSON.stringify(files)); loadFile(name); }
+
+function initUI(){
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.onclick=()=>{ document.querySelectorAll('.tab').forEach(b=>b.classList.remove('tab-active')); btn.classList.add('tab-active'); const tab=btn.dataset.tab; $('#panel-files').classList.toggle('hidden',tab!=='files'); $('#panel-libs').classList.toggle('hidden',tab!=='libs'); $('#panel-examples').classList.toggle('hidden',tab!=='examples'); };
+  });
+  $('#btn-render').onclick=render;
+  $('#btn-auto').onclick=function(){ autoRender=!autoRender; this.classList.toggle('bg-[#1e2533]',autoRender); this.classList.toggle('bg-[#11151d]',!autoRender); };
+  $('#btn-new').onclick=newFile; $('#btn-new-file').onclick=newFile;
+  $('#btn-save').onclick=saveFile;
+  $('#btn-open').onclick=()=>$('#file-open').click();
+  $('#file-open').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const txt=await f.text(); files[f.name]=txt; currentFile=f.name; localStorage.setItem('oscad-files',JSON.stringify(files)); loadFile(f.name); };
+  $('#btn-import').onclick=()=>$('#file-stl').click();
+  $('#file-stl').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const buf=new Uint8Array(await f.arrayBuffer()); const scad=await getSCAD(); scad.FS.writeFile('/import.stl', buf); insertText(`import("/import.stl");\n`); log(`Imported ${f.name} (${(buf.length/1024).toFixed(1)}KB)`,'success'); };
+  $('#btn-export').onclick=()=>$('#export-menu').classList.toggle('hidden');
+  document.addEventListener('click',e=>{ if(!e.target.closest('#btn-export')) $('#export-menu').classList.add('hidden'); });
+  $('#export-menu').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; exportAs(b.dataset.ext); $('#export-menu').classList.add('hidden'); };
+  $('#btn-reset').onclick=()=>{ customizerValues={}; parseCustomizer(); scheduleRender(); };
+  $('#btn-clear-console').onclick=()=>$('#console-log').innerHTML='';
+  $('#lib-search').oninput=e=>renderLibraryTree(e.target.value);
+  $('#view-reset').onclick=()=>{ if(mesh){ controls.target.set(0,0,0); camera.position.set(90,70,110); controls.update(); } };
+  $('#view-wire').onclick=function(){ if(mesh){ mesh.material.wireframe=!mesh.material.wireframe; this.classList.toggle('bg-blue-600'); } };
+  $('#vresizer').onmousedown=e=>{ e.preventDefault(); const prev=e.clientY; const preview=$('#preview'); const startH=preview.offsetHeight; const onMove=ev=>{ const dh=ev.clientY-prev; preview.style.height=Math.max(120, startH+dh)+'px'; }; const up=()=>{ window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',up); }; window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',up); };
+  $('#btn-gist').onclick=async()=>{ const token=localStorage.getItem('github-token')||prompt('GitHub Personal Access Token (gist scope):'); if(!token) return; localStorage.setItem('github-token',token); const code=editor.state.doc.toString(); try{ const res=await fetch('https://api.github.com/gists',{method:'POST',headers:{Authorization:`token ${token}`,'Content-Type':'application/json'},body:JSON.stringify({public:false,files:{[currentFile]:{content:code}}})}); const j=await res.json(); if(j.html_url){ log('Gist saved: '+j.html_url,'success'); window.open(j.html_url,'_blank'); } else throw new Error(j.message); }catch(e){ log('Gist failed: '+e.message,'error'); } };
+  // examples
+  const eg=$('#examples-grid'); EXAMPLES.forEach(ex=>{ const b=document.createElement('button'); b.className='w-full text-left px-2.5 py-2 rounded hover:bg-[#141a23] border border-transparent hover:border-[#232938] text-xs'; b.innerHTML=`<div class="font-medium text-gray-200">${ex.name}</div><div class="text-[10px] text-gray-500 truncate">${ex.code.split('\n')[0].slice(0,60)}</div>`; b.onclick=()=>{ editor.dispatch({changes:{from:0,to:editor.state.doc.length,insert:ex.code}}); parseCustomizer(); if(autoRender) scheduleRender(); document.querySelector('[data-tab="files"]').click(); }; eg.appendChild(b); });
+}
+
+initThree();
+initEditor();
+initUI();
+setupFiles();
+parseCustomizer();
+log('OpenSCAD Ultimate IDE ready. Libraries load on first render.','success');
+renderLibraryTree();
+
+// welcome mesh
+(() => { const g=new THREE.BoxGeometry(18,18,18); const m=new THREE.MeshStandardMaterial({color:0x3b82f6, metalness:0.2, roughness:0.5}); const c=new THREE.Mesh(g,m); c.userData.isModel=true; scene.add(c); })();
+</script>
+</body>
+</html>
